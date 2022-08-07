@@ -51,9 +51,7 @@ module core_v_mcu_jtag_tb;
 
   int exit_status = EXIT_ERROR;  // modelsim exit code, will be overwritten when successfull
 
-  jtag_pkg::test_mode_if_t test_mode_if = new;
   jtag_pkg::debug_mode_if_t debug_mode_if = new;
-  pulp_tap_pkg::pulp_tap_if_soc_t pulp_tap = new;
 
   // system wires
   // the w_/s_ prefixes are used to mean wire/tri-type and logic-type (respectively)
@@ -350,8 +348,6 @@ module core_v_mcu_jtag_tb;
 
         jtag_pkg::jtag_get_idcode(s_tck, s_tms, s_trstn, s_tdi, s_tdo);
         #5us;
-
-        test_mode_if.init(s_tck, s_tms, s_trstn, s_tdi);
 
         $display("[TB  ] %t - Releasing hard reset", $realtime);
         s_rst_n = 1'b1;

@@ -376,78 +376,23 @@ package jtag_pkg;
       ref logic s_tdi,
       ref logic s_tdo
    );
-      automatic JTAG_reg #(.size(255), .instr({JTAG_SOC_BYPASS, JTAG_SOC_BYPASS})) jtag_bypass = new;
+      automatic JTAG_reg #(.size(255), .instr({JTAG_SOC_BYPASS})) jtag_bypass = new;
                 logic [255:0] result_data;
       automatic logic [255:0] test_data = {     32'hDEADBEEF, 32'h0BADF00D, 32'h01234567, 32'h89ABCDEF,
                                                 32'hAAAABBBB, 32'hCCCCDDDD, 32'hEEEEFFFF, 32'h00001111};
       jtag_bypass.setIR(s_tck, s_tms, s_trstn, s_tdi);
       jtag_bypass.shift(test_data, result_data, s_tck, s_tms, s_trstn, s_tdi, s_tdo);
-      if (test_data[253:0] === result_data[255:2])
+      if (test_data[254:0] === result_data[255:1])
          $display("[JTAG] %t - Bypass Test Passed", $realtime);
       else
       begin
          $display("[JTAG] %t - Bypass Test Failed", $realtime);
-         $display("[JTAG] %t -   LSB WORD TEST = %h", $realtime, test_data[31:0]);
-         $display("[JTAG] %t -   LSB WORD RES  = %h", $realtime, result_data[32:1]);
+         $display("[JTAG] %t -   LSB WORD TEST = %h", $realtime, test_data[254:0]);
+         $display("[JTAG] %t -   LSB WORD RES  = %h", $realtime, result_data[255:1]);
       end
    endtask
 
-   class test_mode_if_t;
-
-      task init(
-         ref logic s_tck,
-         ref logic s_tms,
-         ref logic s_trstn,
-         ref logic s_tdi
-      );
-         JTAG_reg #(.size(256), .instr({JTAG_SOC_BYPASS, JTAG_SOC_CONFREG})) jtag_soc_dbg = new;
-         jtag_soc_dbg.setIR(s_tck, s_tms, s_trstn, s_tdi);
-         $display("[TIF ] %t - Init", $realtime);
-      endtask
-
-      task set_confreg(
-         input  logic [8:0] confreg,
-         output logic [8:0] dataout,
-         ref logic s_tck,
-         ref logic s_tms,
-         ref logic s_trstn,
-         ref logic s_tdi,
-         ref logic s_tdo
-      );
-         logic [8+1:0] confreg_int, dataout_int; //extra bit for bypass
-         JTAG_reg #(.size(256), .instr({JTAG_SOC_BYPASS, JTAG_SOC_CONFREG})) jtag_soc_dbg = new;
-
-         confreg_int = {1'b0, confreg};
-
-         jtag_soc_dbg.start_shift(s_tck, s_tms, s_trstn, s_tdi);
-         jtag_soc_dbg.shift_nbits(9+1, confreg_int, dataout_int, s_tck, s_tms, s_trstn, s_tdi, s_tdo);
-         jtag_soc_dbg.idle(s_tck, s_tms, s_trstn, s_tdi);
-         dataout = dataout_int[8:0];
-         $display("[TIF ] %t - Setting confreg to value %X.", $realtime, confreg);
-      endtask
-
-      task get_confreg(
-         input logic [8:0] confreg,
-         output bit  [8:0] rec,
-         ref logic s_tck,
-         ref logic s_tms,
-         ref logic s_trstn,
-         ref logic s_tdi,
-         ref logic s_tdo
-      );
-         logic [8+1:0] dataout; //extra bit for bypass
-         JTAG_reg #(.size(256), .instr({JTAG_SOC_BYPASS, JTAG_SOC_CONFREG})) jtag_soc_dbg = new;
-         jtag_soc_dbg.start_shift(s_tck, s_tms, s_trstn, s_tdi);
-         jtag_soc_dbg.shift_nbits(9+1, confreg, dataout, s_tck, s_tms, s_trstn, s_tdi, s_tdo);
-         jtag_soc_dbg.idle(s_tck, s_tms, s_trstn, s_tdi);
-         rec = dataout [8:0];
-         // `DEBUG_MANAGER_INST.printf(STDOUT, 0, $sformatf("%s[TEST_MODE_IF] %s%t - %sGet confreg value = %X%s\n", `ESC_BLUE_BOLD, `ESC_WHITE, $realtime, `ESC_MAGENTA, rec, `ESC_DEFAULT));
-      endtask
-
-   endclass
-
    class debug_mode_if_t;
-
 
       task init_dmi_access(
          ref logic s_tck,
@@ -455,7 +400,7 @@ package jtag_pkg;
          ref logic s_trstn,
          ref logic s_tdi
       );
-         JTAG_reg #(.size(32+1), .instr({JTAG_SOC_DMIACCESS, JTAG_SOC_BYPASS})) jtag_soc_dbg = new;
+         JTAG_reg #(.size(32), .instr({JTAG_SOC_DMIACCESS})) jtag_soc_dbg = new;
          jtag_soc_dbg.setIR(s_tck, s_tms, s_trstn, s_tdi);
 
       endtask
@@ -467,7 +412,7 @@ package jtag_pkg;
          ref logic s_tdi
       );
 
-         JTAG_reg #(.size(32+1), .instr({JTAG_SOC_DTMCSR, JTAG_SOC_BYPASS})) jtag_soc_dbg = new;
+         JTAG_reg #(.size(32), .instr({JTAG_SOC_DTMCSR})) jtag_soc_dbg = new;
          jtag_soc_dbg.setIR(s_tck, s_tms, s_trstn, s_tdi);
 
       endtask
@@ -835,12 +780,12 @@ package jtag_pkg;
          ref logic s_tdi,
          ref logic s_tdo
       );
-         logic [31+1:0] dataout;
-         JTAG_reg #(.size(32+1), .instr({JTAG_SOC_DTMCSR, JTAG_SOC_BYPASS})) jtag_soc_dbg = new;
+         logic [31:0] dataout;
+         JTAG_reg #(.size(32), .instr({JTAG_SOC_DTMCSR})) jtag_soc_dbg = new;
          jtag_soc_dbg.start_shift(s_tck, s_tms, s_trstn, s_tdi);
-         jtag_soc_dbg.shift_nbits(32+1, '0, dataout, s_tck, s_tms, s_trstn, s_tdi, s_tdo);
+         jtag_soc_dbg.shift_nbits(32, '0, dataout, s_tck, s_tms, s_trstn, s_tdi, s_tdo);
          jtag_soc_dbg.idle(s_tck, s_tms, s_trstn, s_tdi);
-         dtmcs = dataout[32:1];
+         dtmcs = dataout[31:0];
       endtask
 
       task write_dtmcs(
@@ -851,10 +796,10 @@ package jtag_pkg;
          ref logic s_tdi,
          ref logic s_tdo
       );
-         logic [31+1:0] dataout;
-         JTAG_reg #(.size(32+1), .instr({JTAG_SOC_DTMCSR, JTAG_SOC_BYPASS})) jtag_soc_dbg = new;
+         logic [31:0] dataout;
+         JTAG_reg #(.size(32), .instr({JTAG_SOC_DTMCSR})) jtag_soc_dbg = new;
          jtag_soc_dbg.start_shift(s_tck, s_tms, s_trstn, s_tdi);
-         jtag_soc_dbg.shift_nbits(32+1, {dtmcs, 1'b0}, dataout, s_tck, s_tms, s_trstn, s_tdi, s_tdo);
+         jtag_soc_dbg.shift_nbits(32, dtmcs, dataout, s_tck, s_tms, s_trstn, s_tdi, s_tdo);
          jtag_soc_dbg.idle(s_tck, s_tms, s_trstn, s_tdi);
 
       endtask
@@ -958,14 +903,14 @@ package jtag_pkg;
          ref logic s_tdi,
          ref logic s_tdo
       );
-         logic [DMI_SIZE-1+1:0] buffer;
+         logic [DMI_SIZE-1:0] buffer;
          logic [DMI_SIZE-1:0]   buffer_riscv;
-         JTAG_reg #(.size(DMI_SIZE+1), .instr({JTAG_SOC_DMIACCESS, JTAG_SOC_BYPASS})) jtag_soc_dbg = new;
+         JTAG_reg #(.size(DMI_SIZE), .instr({JTAG_SOC_DMIACCESS})) jtag_soc_dbg = new;
          jtag_soc_dbg.start_shift(s_tck, s_tms, s_trstn, s_tdi);
-         jtag_soc_dbg.shift_nbits(DMI_SIZE+1, {address_i,data_i,op_i, 1'b0}, buffer, s_tck, s_tms, s_trstn, s_tdi, s_tdo);
+         jtag_soc_dbg.shift_nbits(DMI_SIZE, {address_i,data_i,op_i}, buffer, s_tck, s_tms, s_trstn, s_tdi, s_tdo);
          jtag_soc_dbg.jtag_goto_UPDATE_DR_FROM_SHIFT_DR(s_tck, s_tms, s_trstn, s_tdi);
          jtag_soc_dbg.jtag_goto_CAPTURE_DR_FROM_UPDATE_DR_GETDATA(buffer, s_tck, s_tms, s_trstn, s_tdi,s_tdo);
-         buffer_riscv = buffer[DMI_SIZE:1];
+         buffer_riscv = buffer[DMI_SIZE-1:0];
          //while(buffer_riscv[1:0] == 2'b11) begin
          //   //$display("buffer is set_dmi is %x (OP %x address %x datain %x) (%t)",buffer, buffer[1:0], buffer[8:2], buffer[DMI_SIZE-1:9], $realtime);
          //   jtag_soc_dbg.jtag_goto_CAPTURE_DR_FROM_SHIFT_DR_GETDATA(buffer, s_tck, s_tms, s_trstn, s_tdi,s_tdo);
@@ -2827,7 +2772,3 @@ package jtag_pkg;
   endclass
 
 endpackage
-
-// Local Variables:
-// verilog-indent-level: 3
-// End:
